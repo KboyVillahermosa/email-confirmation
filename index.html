@@ -9,6 +9,7 @@
       text-align: center;
       padding: 40px 20px;
       background-color: #f5f5f5;
+      color: #444;
     }
     .card {
       max-width: 500px;
@@ -20,6 +21,7 @@
     }
     h1 {
       color: #2E7D32;
+      margin-bottom: 10px;
     }
     .button {
       display: inline-block;
@@ -30,41 +32,136 @@
       text-decoration: none;
       font-weight: bold;
       margin-top: 20px;
+      transition: all 0.3s ease;
+    }
+    .button:hover {
+      background-color: #1b5e20;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
     .success-icon {
       font-size: 60px;
       color: #2E7D32;
       margin-bottom: 20px;
     }
+    .countdown {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #777;
+    }
+    .fallback {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      font-size: 14px;
+      color: #777;
+    }
+    .logo {
+      max-width: 100px;
+      margin-bottom: 20px;
+    }
   </style>
   <script>
     window.onload = function() {
-      // Check if we have a success or error message in the URL
+      // Check URL for authentication data
       const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+      let redirectUrl = 'hikewise://login';
+      let countdownSeconds = 5;
+      let countdownElement;
       
+      // Handle various confirmation states
       if (urlParams.has('error')) {
-        // There was an error with confirmation
+        // Error with confirmation
         document.getElementById('status').textContent = 'There was a problem confirming your email. Please try again or contact support.';
         document.getElementById('icon').innerHTML = '❌';
         document.getElementById('icon').style.color = '#d32f2f';
-      } else if (window.location.hash.includes('access_token')) {
-        // Successful confirmation (Supabase adds access_token in hash)
+        document.getElementById('subtitle').textContent = 'You can return to the app and try again.';
+      } else if (hashParams.has('access_token') || window.location.hash.includes('access_token')) {
+        // Successful confirmation from Supabase (access_token in hash)
         document.getElementById('status').textContent = 'Your email has been confirmed successfully!';
+        document.getElementById('subtitle').textContent = 'You can now return to the HikeWise app and log in.';
+        
+        // Get access token to possibly pass to app
+        const accessToken = hashParams.get('access_token') || '';
+        if (accessToken) {
+          redirectUrl = `hikewise://auth/callback?access_token=${accessToken}`;
+        }
+      } else if (urlParams.has('type') && urlParams.has('token')) {
+        // Direct token from email - make this the primary flow
+        const token = urlParams.get('token');
+        const type = urlParams.get('type');
+        redirectUrl = `hikewise://auth/callback?token=${token}&type=${type}`;
+        document.getElementById('status').textContent = 'Confirming your email...';
+        document.getElementById('subtitle').textContent = 'Redirecting you to the app...';
+      } else {
+        // Generic confirmation - no specific tokens but page loaded
+        document.getElementById('status').textContent = 'Email confirmation complete!';
         document.getElementById('subtitle').textContent = 'You can now return to the HikeWise app and log in.';
       }
       
-      // Set the button to open the app
-      document.getElementById('openAppBtn').href = 'hikewise://login';
+      // Set the button to open the app with the appropriate URL
+      const openAppBtn = document.getElementById('openAppBtn');
+      openAppBtn.href = redirectUrl;
+      
+      // Add countdown element
+      countdownElement = document.createElement('div');
+      countdownElement.className = 'countdown';
+      countdownElement.textContent = `Opening app in ${countdownSeconds} seconds...`;
+      document.querySelector('.card').insertBefore(countdownElement, document.getElementById('openAppBtn').parentNode);
+      
+      // Start countdown
+      const countdownInterval = setInterval(function() {
+        countdownSeconds--;
+        if (countdownSeconds <= 0) {
+          clearInterval(countdownInterval);
+          window.location.href = redirectUrl;
+        } else {
+          countdownElement.textContent = `Opening app in ${countdownSeconds} seconds...`;
+        }
+      }, 1000);
+      
+      // Set button text appropriately
+      if (urlParams.has('error')) {
+        openAppBtn.textContent = 'Return to App';
+      } else if (window.location.hash.includes('access_token')) {
+        openAppBtn.textContent = 'Open App Now';
+      } else {
+        openAppBtn.textContent = 'Open HikeWise App';
+      }
+      
+      // Allow manual click to override countdown
+      openAppBtn.addEventListener('click', function(e) {
+        clearInterval(countdownInterval);
+        countdownElement.textContent = 'Opening app...';
+      });
     };
   </script>
 </head>
 <body>
   <div class="card">
+    <!-- Optional: Add app logo here -->
+    <!-- <img src="logo.png" alt="HikeWise Logo" class="logo"> -->
+    
     <div class="success-icon" id="icon">✓</div>
     <h1>Email Confirmation</h1>
     <p id="status">Your email has been confirmed!</p>
     <p id="subtitle">You can now return to the HikeWise app and log in.</p>
-    <a id="openAppBtn" href="hikewise://login" class="button">Open HikeWise App</a>
+    
+    <!-- The countdown element will be inserted here by JavaScript -->
+    
+    <p>
+      <a id="openAppBtn" href="hikewise://login" class="button">Open HikeWise App</a>
+    </p>
+    
+    <div class="fallback">
+      <p>If the app doesn't open automatically, please try these options:</p>
+      <ul style="list-style: none; padding: 0;">
+        <li>Make sure you have the HikeWise app installed</li>
+        <li>Try opening the app manually and signing in</li>
+        <li>If you're on a desktop computer, check your email on your mobile device</li>
+      </ul>
+    </div>
   </div>
 </body>
 </html>
