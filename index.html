@@ -31,38 +31,40 @@
       font-weight: bold;
       margin-top: 20px;
     }
+    .success-icon {
+      font-size: 60px;
+      color: #2E7D32;
+      margin-bottom: 20px;
+    }
   </style>
   <script>
     window.onload = function() {
-      // Get url parameters
+      // Check if we have a success or error message in the URL
       const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-      const type = urlParams.get('type') || 'signup';
       
-      if (token) {
-        // Create app link
-        const appLink = `hikewise://auth/confirm?token=${token}&type=${type}`;
-        
-        // Set the button href
-        document.getElementById('openAppBtn').href = appLink;
-        
-        // Try to open the app automatically after a short delay
-        setTimeout(function() {
-          window.location.href = appLink;
-        }, 1000);
-      } else {
-        document.getElementById('status').textContent = 'No confirmation token found in URL.';
-        document.getElementById('openAppBtn').style.display = 'none';
+      if (urlParams.has('error')) {
+        // There was an error with confirmation
+        document.getElementById('status').textContent = 'There was a problem confirming your email. Please try again or contact support.';
+        document.getElementById('icon').innerHTML = '❌';
+        document.getElementById('icon').style.color = '#d32f2f';
+      } else if (window.location.hash.includes('access_token')) {
+        // Successful confirmation (Supabase adds access_token in hash)
+        document.getElementById('status').textContent = 'Your email has been confirmed successfully!';
+        document.getElementById('subtitle').textContent = 'You can now return to the HikeWise app and log in.';
       }
+      
+      // Set the button to open the app
+      document.getElementById('openAppBtn').href = 'hikewise://login';
     };
   </script>
 </head>
 <body>
   <div class="card">
+    <div class="success-icon" id="icon">✓</div>
     <h1>Email Confirmation</h1>
-    <p id="status">Opening HikeWise app to complete your email verification...</p>
-    <p>If the app doesn't open automatically, please click the button below:</p>
-    <a id="openAppBtn" href="#" class="button">Open HikeWise App</a>
+    <p id="status">Your email has been confirmed!</p>
+    <p id="subtitle">You can now return to the HikeWise app and log in.</p>
+    <a id="openAppBtn" href="hikewise://login" class="button">Open HikeWise App</a>
   </div>
 </body>
 </html>
